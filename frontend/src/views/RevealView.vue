@@ -89,6 +89,7 @@ const shareCard = async (type) => {
     ? 'Cek Foto Nusantara saya dari Identity90!' 
     : 'Cek Persona Nusantara saya dari Identity90 dengan puisi eksklusif!';
 
+  // Web Share API requires HTTPS context to work properly
   if (navigator.share) {
     try {
       await navigator.share({
@@ -96,12 +97,32 @@ const shareCard = async (type) => {
         text: shareText,
         url: window.location.href, // In reality, link to a shared public page
       })
+      return;
     } catch (err) {
       console.log('Share canceled or failed', err)
+      // Fall through to clipboard approach on system failure (not cancellation)
+      if (err.name !== 'AbortError') {
+        fallbackShare(shareText);
+      }
     }
   } else {
-    alert("Web Share API tidak didukung di browser ini. Gunakan tombol 'Save'.")
+    fallbackShare(shareText);
   }
+}
+
+const fallbackShare = (text) => {
+    // Basic fallback to clipboard
+    const fullText = `${text}\n${window.location.href}`;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(fullText)
+        .then(() => alert("Link berhasil disalin ke clipboard!"))
+        .catch(err => {
+            console.error("Failed to copy clipboard:", err)
+            alert("Web Share API tidak didukung. Mohon salin link secara manual: " + window.location.href)
+        });
+    } else {
+        alert("Web Share API tidak didukung. Mohon salin link secara manual: " + window.location.href)
+    }
 }
 
 const downloadCard = (type) => {

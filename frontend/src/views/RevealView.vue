@@ -66,8 +66,10 @@ import { useRouter } from 'vue-router'
 import { HomeIcon, Share2Icon, DownloadIcon } from 'lucide-vue-next'
 import BaseButton from '../components/ui/BaseButton.vue'
 import { transformationState, resetState } from '../store.js'
+import html2canvas from 'html2canvas'
 
 const router = useRouter()
+const cardRef = ref(null)
 const result = computed(() => transformationState.result)
 
 const formatVibe = (vibe) => {
@@ -125,14 +127,63 @@ const fallbackShare = (text) => {
     }
 }
 
-const downloadCard = (type) => {
-  // Mock download action for MVP
-  // In a real app, 'image' downloads just result.imageUrl
-  // 'full' uses html2canvas on the cardRef to download the entire component
+const downloadCard = async (type) => {
   if (type === 'image') {
-    alert("Mengunduh gambar asli resolusi 1:1... (Mock Action)")
+    if (!result.value?.imageUrl) return;
+    try {
+      const response = await fetch(result.value.imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Identity90-Avatar-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+       console.error("Error downloading image:", error);
+       alert("Gagal mengunduh gambar. Membuka di tab baru...");
+       // Fallback: open image in new tab if CORS prevents direct download
+       window.open(result.value.imageUrl, '_blank');
+    }
   } else {
-    alert("Mengedit dan mengunduh seluruh kartu dengan puisi... (Mock Action)")
+    if (!cardRef.value) return;
+    const originalStyle = cardRef.value.style.transform;
+    try {
+      const btn = event?.currentTarget;
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Menyiapkan...';
+        btn.disabled = true;
+      }
+      
+      // html2canvas works best when element is not transformed
+      cardRef.value.style.transform = 'none';
+      const canvas = await html2canvas(cardRef.value, {
+        useCORS: true, 
+        allowTaint: true,
+        backgroundColor: '#0f172a', // matching slate-950
+        scale: 2 
+      });
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `Identity90-Persona-Card-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      if (btn) {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    } catch (error) {
+      console.error("Error generating card image:", error);
+      alert("Gagal membuat kartu persona. Coba lagi.");
+    } finally {
+      cardRef.value.style.transform = originalStyle;
+    }
   }
 }
 </script>

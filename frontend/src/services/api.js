@@ -7,8 +7,12 @@ const api = axios.create({
 export const generateAvatar = async (data) => {
     const formData = new FormData();
     formData.append('path', data.path);
-    formData.append('region', data.region);
+    formData.append('region', data.region); // region here refers to outfitId
     formData.append('vibe', data.vibe);
+
+    if (data.gender) {
+        formData.append('gender', data.gender);
+    }
 
     if (data.imageFile) {
         formData.append('image', data.imageFile);

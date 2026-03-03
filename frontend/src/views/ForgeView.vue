@@ -76,6 +76,7 @@ onMounted(async () => {
       path: transformationState.path,
       region: transformationState.region,
       vibe: transformationState.vibe,
+      gender: transformationState.gender,
       imageFile: transformationState.imageFile,
     });
 

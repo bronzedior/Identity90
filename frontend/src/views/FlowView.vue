@@ -45,33 +45,56 @@
               <SparklesIcon class="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h3 class="font-bold text-lg text-slate-100">Persona Nusantara</h3>
-              <p class="text-sm text-slate-400 mt-1">Pilih karakter legendaris langsung.</p>
+              <h3 class="font-bold text-lg text-slate-100">Elevated Heritage</h3>
+              <p class="text-sm text-slate-400 mt-1">Jelajahi gaya busana tradisional tingkat tinggi.</p>
             </div>
           </button>
         </div>
       </div>
 
-      <!-- Step 2: Region Selection -->
-      <div v-show="state.step === 2" class="animate-fade-in w-full">
-        <h2 class="text-2xl font-bold mb-2">Pilih Region</h2>
-        <p class="text-slate-400 mb-8">Tentukan asal-usul legendamu</p>
+      <!-- Step: Gender Selection (Archetype only) -->
+      <div v-show="currentStepName === 'gender'" class="animate-fade-in w-full">
+        <h2 class="text-2xl font-bold mb-2">Pilih Gender</h2>
+        <p class="text-slate-400 mb-8">Tentukan identitas perwujudanmu</p>
 
         <div class="grid grid-cols-2 gap-3 w-full">
           <button
-            v-for="region in regions"
-            :key="region.id"
-            @click="transformationState.region = region.id"
+            @click="transformationState.gender = 'man'"
             class="p-4 rounded-xl border-2 transition-all duration-200 text-center font-bold"
-            :class="transformationState.region === region.id ? 'border-amber-500 bg-amber-500/20 text-amber-300' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:bg-slate-700'"
+            :class="transformationState.gender === 'man' ? 'border-amber-500 bg-amber-500/20 text-amber-300' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:bg-slate-700'"
           >
-            {{ region.name }}
+            Pria
+          </button>
+          <button
+            @click="transformationState.gender = 'woman'"
+            class="p-4 rounded-xl border-2 transition-all duration-200 text-center font-bold"
+            :class="transformationState.gender === 'woman' ? 'border-amber-500 bg-amber-500/20 text-amber-300' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:bg-slate-700'"
+          >
+            Wanita
           </button>
         </div>
       </div>
 
-      <!-- Step 3: Vibe Selection -->
-      <div v-show="state.step === 3" class="animate-fade-in w-full">
+      <!-- Step: Outfit Selection -->
+      <div v-show="currentStepName === 'outfit'" class="animate-fade-in w-full">
+        <h2 class="text-2xl font-bold mb-2">Pilih Pakaian Adat</h2>
+        <p class="text-slate-400 mb-8">Tentukan balutan wastra Nusantara</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-h-[50vh] overflow-y-auto pr-2" style="scrollbar-width: thin; scrollbar-color: #475569 transparent;">
+          <button
+            v-for="outfit in outfits"
+            :key="outfit.id"
+            @click="transformationState.region = outfit.id"
+            class="p-4 rounded-xl border-2 transition-all duration-200 text-left text-sm"
+            :class="transformationState.region === outfit.id ? 'border-amber-500 bg-amber-500/20 text-amber-300 font-bold' : 'border-slate-700 bg-slate-800/40 text-slate-300 hover:bg-slate-700 hover:border-slate-500'"
+          >
+            {{ outfit.name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Step: Vibe Selection -->
+      <div v-show="currentStepName === 'vibe'" class="animate-fade-in w-full">
         <h2 class="text-2xl font-bold mb-2">Vibe Check</h2>
         <p class="text-slate-400 mb-8">Pilih nuansa estetika avatar</p>
 
@@ -101,7 +124,7 @@
     
     <div class="mt-auto pt-8 pb-4 w-full">
       <BaseButton size="lg" :disabled="!canProceed" @click="proceed">
-        {{ state.step === 3 ? 'Generate Sekarang' : 'Lanjutkan' }}
+        {{ currentStepName === 'vibe' ? 'Generate Sekarang' : 'Lanjutkan' }}
       </BaseButton>
     </div>
   </div>
@@ -113,11 +136,25 @@ import { useRouter } from 'vue-router'
 import { ArrowLeftIcon, UserIcon, SparklesIcon } from 'lucide-vue-next'
 import BaseButton from '../components/ui/BaseButton.vue'
 import { transformationState } from '../store.js'
+import { outfits } from '../outfits.js'
 
 const router = useRouter()
 
 const state = reactive({
-  step: 1, // 1: Path, 2: Region, 3: Vibe
+  step: 1, // Dynamic step resolution
+})
+
+const currentStepName = computed(() => {
+  if (state.step === 1) return 'path'
+  if (transformationState.path === 'archetype') {
+    if (state.step === 2) return 'gender'
+    if (state.step === 3) return 'outfit'
+    if (state.step === 4) return 'vibe'
+  } else {
+    // upload path
+    if (state.step === 2) return 'outfit'
+    if (state.step === 3) return 'vibe'
+  }
 })
 
 const fileName = ref('')
@@ -130,29 +167,22 @@ const handleFileUpload = (event) => {
   }
 }
 
-const regions = [
-  { id: 'jawa', name: 'Jawa' },
-  { id: 'bali', name: 'Bali' },
-  { id: 'sumatera', name: 'Sumatera' },
-  { id: 'kalimantan', name: 'Kalimantan' },
-  { id: 'sulawesi', name: 'Sulawesi' },
-  { id: 'papua', name: 'Papua' },
-]
-
 const vibes = [
-  { id: 'cyber', name: 'Cyber-Kingdom', emoji: '🦾', desc: 'Futuristik neon dengan sentuhan kerajaan kuno.', bgDefault: 'bg-indigo-900', bgActive: 'bg-indigo-500' },
-  { id: 'mythical', name: 'Mythical Divine', emoji: '✨', desc: 'Aura dewa-dewi mitologi dengan cahaya keemasan.', bgDefault: 'bg-amber-900', bgActive: 'bg-amber-500' },
-  { id: 'royal', name: 'Royal Heritage', emoji: '👑', desc: 'Elegan, megah, dan klasik keraton.', bgDefault: 'bg-red-900', bgActive: 'bg-red-500' },
-  { id: 'warrior', name: 'Tribal Warrior', emoji: '⚔️', desc: 'Gahar, tangguh, menyatu dengan alam liar.', bgDefault: 'bg-emerald-900', bgActive: 'bg-emerald-500' },
+  { id: 'cyber', name: 'Cyber-Couture', emoji: '✨', desc: 'Neon avant-garde fashion dengan sentuhan wastra.', bgDefault: 'bg-indigo-900', bgActive: 'bg-indigo-500' },
+  { id: 'mythical', name: 'Ethereal Elegance', emoji: '🕊️', desc: 'Pemotretan majalah bernuansa anggun & mistis.', bgDefault: 'bg-amber-900', bgActive: 'bg-amber-500' },
+  { id: 'royal', name: 'High-Society Royal', emoji: '👑', desc: 'Gaya ningrat modern, mewah dan berkelas tinggi.', bgDefault: 'bg-red-900', bgActive: 'bg-red-500' },
+  { id: 'warrior', name: 'Edgy Ethnic', emoji: '🖤', desc: 'High-fashion tegas dengan corak tradisional berani.', bgDefault: 'bg-emerald-900', bgActive: 'bg-emerald-500' },
+  { id: 'natural', name: 'Natural', emoji: '🌿', desc: 'Sederhana, membumi, tanpa modifikasi berlebih.', bgDefault: 'bg-stone-800', bgActive: 'bg-stone-500' },
 ]
 
 const canProceed = computed(() => {
-  if (state.step === 1) {
+  if (currentStepName.value === 'path') {
     if (transformationState.path === 'upload') return !!transformationState.imageFile
     return !!transformationState.path
   }
-  if (state.step === 2) return !!transformationState.region
-  if (state.step === 3) return !!transformationState.vibe
+  if (currentStepName.value === 'gender') return !!transformationState.gender
+  if (currentStepName.value === 'outfit') return !!transformationState.region
+  if (currentStepName.value === 'vibe') return !!transformationState.vibe
   return false
 })
 
@@ -161,13 +191,11 @@ const selectPath = (path) => {
 }
 
 const proceed = () => {
-  if (state.step === 1 && transformationState.path) {
-    state.step = 2
-  } else if (state.step === 2 && transformationState.region) {
-    state.step = 3
-  } else if (state.step === 3 && transformationState.vibe) {
+  if (currentStepName.value === 'vibe') {
     // Navigate to Forge
     router.push('/forge')
+  } else {
+    state.step++
   }
 }
 

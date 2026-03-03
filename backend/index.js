@@ -37,7 +37,7 @@ const openai = new OpenAI({
 // Generate Endpoint
 app.post('/api/generate', upload.single('image'), async (req, res) => {
     try {
-        const { region, vibe, path } = req.body;
+        const { region, vibe, path, gender } = req.body;
         let base64Image = null;
 
         let faceFeatures = "";
@@ -66,7 +66,7 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
             }
         }
 
-        const constructedPrompt = generatePrompt(region, vibe, faceFeatures);
+        const constructedPrompt = generatePrompt(region, vibe, faceFeatures, gender);
 
         // Simulate AI Generation if API Key is not configured
         if (!process.env.DASHSCOPE_API_KEY || process.env.DASHSCOPE_API_KEY === 'your_dashscope_api_key_here') {

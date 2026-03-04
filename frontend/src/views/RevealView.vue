@@ -10,50 +10,42 @@
       </div>
     </div>
 
-    <!-- The Persona Card -->
-    <div ref="cardRef" class="relative rounded-3xl overflow-hidden shadow-2xl shadow-amber-900/40 border border-slate-700/50 bg-slate-900 mx-auto w-full max-w-sm flex flex-col">
-      <!-- Image Area -->
-      <div class="relative aspect-square w-full bg-slate-800 flex-shrink-0 overflow-hidden">
+    <div 
+      ref="cardRef" 
+      class="persona-card-container persona-card-shadow relative rounded-3xl overflow-hidden mx-auto w-full max-w-sm flex flex-col"
+    >
+      <div class="relative aspect-square w-full flex-shrink-0 overflow-hidden" style="background-color: #1e293b;">
         <img 
           :src="result?.imageUrl" 
           alt="Avatar" 
-          class="w-full h-full object-cover mix-blend-luminosity opacity-80 shadow-inner transition-opacity duration-1000"
+          crossorigin="anonymous"
+          class="w-full h-full object-cover mix-blend-luminosity opacity-80"
+          style="box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);"
           :class="{'opacity-0': !result?.imageUrl}"
         />
-        <!-- Gradient Overlay for Bottom Text -->
-        <div class="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none"></div>
+        <div class="absolute inset-x-0 bottom-0 h-24 pointer-events-none" style="background: linear-gradient(to top, rgba(2, 6, 23, 0.8), transparent);"></div>
 
-        <!-- Watermark Info Overlay -->
         <div class="absolute bottom-4 left-4">
-          <p class="text-amber-500 text-[10px] sm:text-xs font-bold tracking-widest uppercase drop-shadow-md opacity-90">Identity90 // Nusantara Series</p>
+          <p class="heritage-text text-[10px] sm:text-xs font-bold tracking-widest uppercase opacity-90" style="text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+            Identity90 // Nusantara Series
+          </p>
         </div>
       </div>
 
-      <!-- Poetry Section -->
-      <div class="px-6 py-6 text-center bg-slate-950 flex flex-col justify-center">
-        <p class="text-slate-300 italic text-sm leading-relaxed drop-shadow-sm">
+      <div class="poetry-section px-6 py-6 text-center flex flex-col justify-center">
+        <p class="poetry-text italic text-sm leading-relaxed" style="text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
           "{{ result?.poetry || 'Dalam diam, akar leluhur menyapa raga yang fana.' }}"
         </p>
       </div>
-
     </div>
 
-    <!-- Action Buttons -->
     <div class="mt-8 px-2 space-y-3">
       <div class="grid grid-cols-2 gap-3">
-        <BaseButton size="sm" @click="shareCard('image')">
+        <BaseButton size="sm" @click="shareImage">
           Share Image <Share2Icon class="w-4 h-4 ml-2" />
         </BaseButton>
-        <BaseButton size="sm" @click="shareCard('full')">
-          Share Card <Share2Icon class="w-4 h-4 ml-2" />
-        </BaseButton>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <BaseButton size="sm" variant="secondary" @click="downloadCard('image')">
+        <BaseButton size="sm" variant="secondary" @click="downloadImage">
           Save Image <DownloadIcon class="w-4 h-4 ml-2" />
-        </BaseButton>
-        <BaseButton size="sm" variant="secondary" @click="downloadCard('full')">
-          Save Card <DownloadIcon class="w-4 h-4 ml-2" />
         </BaseButton>
       </div>
     </div>
@@ -66,46 +58,28 @@ import { useRouter } from 'vue-router'
 import { HomeIcon, Share2Icon, DownloadIcon } from 'lucide-vue-next'
 import BaseButton from '../components/ui/BaseButton.vue'
 import { transformationState, resetState } from '../store.js'
-import html2canvas from 'html2canvas'
 
 const router = useRouter()
-const cardRef = ref(null)
 const result = computed(() => transformationState.result)
-
-const formatVibe = (vibe) => {
-  if (!vibe) return 'Legend'
-  if (vibe === 'cyber') return 'Cyber-Kingdom'
-  if (vibe === 'mythical') return 'Mythical Divine'
-  if (vibe === 'royal') return 'Royal Heritage'
-  if (vibe === 'warrior') return 'Tribal Warrior'
-  return vibe
-}
 
 const goHome = () => {
   resetState();
   router.replace('/');
 }
 
-const shareCard = async (type) => {
-  const shareText = type === 'image' 
-    ? 'Cek Foto Nusantara saya dari Identity90!' 
-    : 'Cek Persona Nusantara saya dari Identity90 dengan puisi eksklusif!';
+const shareImage = async () => {
+  const shareText = 'Cek Foto Nusantara saya dari Identity90!';
 
-  // Web Share API requires HTTPS context to work properly
   if (navigator.share) {
     try {
       await navigator.share({
         title: 'Identity90 - Nusantara Series',
         text: shareText,
-        url: window.location.href, // In reality, link to a shared public page
+        url: window.location.href,
       })
       return;
     } catch (err) {
-      console.log('Share canceled or failed', err)
-      // Fall through to clipboard approach on system failure (not cancellation)
-      if (err.name !== 'AbortError') {
-        fallbackShare(shareText);
-      }
+      if (err.name !== 'AbortError') fallbackShare(shareText);
     }
   } else {
     fallbackShare(shareText);
@@ -113,77 +87,61 @@ const shareCard = async (type) => {
 }
 
 const fallbackShare = (text) => {
-    // Basic fallback to clipboard
     const fullText = `${text}\n${window.location.href}`;
     if (navigator.clipboard) {
         navigator.clipboard.writeText(fullText)
-        .then(() => alert("Link berhasil disalin ke clipboard!"))
-        .catch(err => {
-            console.error("Failed to copy clipboard:", err)
-            alert("Web Share API tidak didukung. Mohon salin link secara manual: " + window.location.href)
-        });
-    } else {
-        alert("Web Share API tidak didukung. Mohon salin link secara manual: " + window.location.href)
+        .then(() => alert("Link berhasil disalin!"))
+        .catch(() => alert("Gagal menyalin link."));
     }
 }
 
-const downloadCard = async (type) => {
-  if (type === 'image') {
-    if (!result.value?.imageUrl) return;
-    try {
-      const response = await fetch(result.value.imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Identity90-Avatar-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-       console.error("Error downloading image:", error);
-       alert("Gagal mengunduh gambar. Membuka di tab baru...");
-       // Fallback: open image in new tab if CORS prevents direct download
-       window.open(result.value.imageUrl, '_blank');
-    }
-  } else {
-    if (!cardRef.value) return;
-    const originalStyle = cardRef.value.style.transform;
-    try {
-      const btn = event?.currentTarget;
-      if (btn) {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = 'Menyiapkan...';
-        btn.disabled = true;
-      }
-      
-      // html2canvas works best when element is not transformed
-      cardRef.value.style.transform = 'none';
-      const canvas = await html2canvas(cardRef.value, {
-        useCORS: true, 
-        allowTaint: true,
-        backgroundColor: '#0f172a', // matching slate-950
-        scale: 2 
-      });
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `Identity90-Persona-Card-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      if (btn) {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-      }
-    } catch (error) {
-      console.error("Error generating card image:", error);
-      alert("Gagal membuat kartu persona. Coba lagi.");
-    } finally {
-      cardRef.value.style.transform = originalStyle;
-    }
+const downloadImage = async () => {
+  if (!result.value?.imageUrl) return;
+  try {
+    const response = await fetch(result.value.imageUrl);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Identity90-Image-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading image:', error);
+    window.open(result.value.imageUrl, '_blank');
   }
 }
 </script>
+
+<style scoped>
+/* Memaksa elemen kartu menggunakan HEX untuk kompatibilitas html2canvas */
+.persona-card-container {
+  background-color: #0f172a !important; /* Hex untuk Slate-900 */
+  border: 1px solid #334155 !important; /* Hex untuk Slate-700 */
+}
+
+.poetry-section {
+  background-color: #020617 !important; /* Hex untuk Slate-950 */
+}
+
+.poetry-text {
+  color: #cbd5e1 !important;            /* Hex untuk Slate-300 */
+}
+
+.heritage-text {
+  color: #f59e0b !important;            /* Hex untuk Amber-500 */
+}
+
+.persona-card-shadow {
+  box-shadow: 0 25px 50px -12px rgba(120, 53, 15, 0.4) !important;
+}
+
+/* Tambahan: html2canvas terkadang gagal merender mix-blend-mode. 
+   Jika gambar hasil download tidak muncul (hitam), gunakan filter grayscale 
+   sebagai fallback di bawah ini */
+img {
+  -webkit-print-color-adjust: exact;
+}
+</style>

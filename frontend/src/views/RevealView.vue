@@ -19,9 +19,9 @@
           :src="result?.imageUrl" 
           alt="Avatar" 
           crossorigin="anonymous"
-          class="w-full h-full object-cover mix-blend-luminosity opacity-80"
+          class="w-full h-full object-cover opacity-80 transition-all duration-700"
           style="box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.5);"
-          :class="{'opacity-0': !result?.imageUrl}"
+          :class="[isMonochrome ? 'mix-blend-luminosity grayscale' : '', {'opacity-0': !result?.imageUrl}]"
         />
         <div class="absolute inset-x-0 bottom-0 h-24 pointer-events-none" style="background: linear-gradient(to top, rgba(2, 6, 23, 0.8), transparent);"></div>
 
@@ -40,12 +40,29 @@
     </div>
 
     <div class="mt-8 px-2 space-y-3">
+      <!-- Toggle Filter -->
+      <div class="flex items-center justify-center gap-4 mb-6 bg-slate-900/50 py-3 rounded-2xl border border-slate-800">
+        <span class="text-xs font-semibold uppercase tracking-wider transition-colors" :class="!isMonochrome ? 'text-amber-400' : 'text-slate-500'">Warna</span>
+        <button 
+          @click="isMonochrome = !isMonochrome"
+          class="relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-slate-900"
+          :class="isMonochrome ? 'bg-slate-600' : 'bg-amber-500'"
+        >
+          <span class="sr-only">Toggle monochrome</span>
+          <span 
+            class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-sm"
+            :class="isMonochrome ? 'translate-x-8' : 'translate-x-1'"
+          />
+        </button>
+        <span class="text-xs font-semibold uppercase tracking-wider transition-colors" :class="isMonochrome ? 'text-amber-400' : 'text-slate-500'">Monokrom</span>
+      </div>
+
       <div class="grid grid-cols-2 gap-3">
-        <BaseButton size="sm" @click="shareImage">
-          Share Image <Share2Icon class="w-4 h-4 ml-2" />
+        <BaseButton size="sm" @click="shareImage($event)">
+          Share Image <Share2Icon class="w-4 h-4 ml-2 flex-shrink-0" />
         </BaseButton>
-        <BaseButton size="sm" variant="secondary" @click="downloadImage">
-          Save Image <DownloadIcon class="w-4 h-4 ml-2" />
+        <BaseButton size="sm" variant="secondary" @click="downloadImage($event)">
+          Save Image <DownloadIcon class="w-4 h-4 ml-2 flex-shrink-0" />
         </BaseButton>
       </div>
     </div>
@@ -61,28 +78,84 @@ import { transformationState, resetState } from '../store.js'
 
 const router = useRouter()
 const result = computed(() => transformationState.result)
+const isMonochrome = ref(true)
 
 const goHome = () => {
   resetState();
   router.replace('/');
 }
 
-const shareImage = async () => {
-  const shareText = 'Cek Foto Nusantara saya dari Identity90!';
+const getProcessedImageBlob = async () => {
+  if (!result.value?.imageUrl) return null;
+  
+  if (!isMonochrome.value) {
+    const response = await fetch(result.value.imageUrl);
+    return await response.blob();
+  }
 
-  if (navigator.share) {
-    try {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.filter = 'grayscale(100%)';
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/png');
+    };
+    img.onerror = reject;
+    img.src = result.value.imageUrl;
+  });
+}
+
+const shareImage = async (event) => {
+  const btn = event?.currentTarget;
+  let originalText = '';
+  if (btn) {
+    originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="animate-pulse">Menyiapkan...</span>';
+    btn.disabled = true;
+  }
+
+  try {
+    const shareText = 'Cek Foto Nusantara saya dari Identity90!';
+    const blob = await getProcessedImageBlob();
+    if (!blob) throw new Error("No image data");
+
+    const file = new File([blob], `Identity90-Image-${Date.now()}.png`, { type: 'image/png' });
+    const shareData = {
+      title: 'Identity90 - Nusantara Series',
+      text: shareText,
+      files: [file]
+    };
+
+    if (navigator.canShare && navigator.canShare(shareData)) {
+      await navigator.share(shareData);
+      return;
+    } else if (navigator.share) {
       await navigator.share({
         title: 'Identity90 - Nusantara Series',
         text: shareText,
         url: window.location.href,
       })
       return;
-    } catch (err) {
-      if (err.name !== 'AbortError') fallbackShare(shareText);
+    } else {
+      fallbackShare(shareText);
     }
-  } else {
-    fallbackShare(shareText);
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.error(err);
+      fallbackShare('Cek Foto Nusantara saya dari Identity90!');
+    }
+  } finally {
+    if (btn) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   }
 }
 
@@ -95,11 +168,19 @@ const fallbackShare = (text) => {
     }
 }
 
-const downloadImage = async () => {
-  if (!result.value?.imageUrl) return;
+const downloadImage = async (event) => {
+  const btn = event?.currentTarget;
+  let originalText = '';
+  if (btn) {
+    originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="animate-pulse">Menyiapkan...</span>';
+    btn.disabled = true;
+  }
+
   try {
-    const response = await fetch(result.value.imageUrl);
-    const blob = await response.blob();
+    const blob = await getProcessedImageBlob();
+    if (!blob) throw new Error("No image data");
+    
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -110,7 +191,14 @@ const downloadImage = async () => {
     window.URL.revokeObjectURL(url);
   } catch (error) {
     console.error('Error downloading image:', error);
-    window.open(result.value.imageUrl, '_blank');
+    if (result.value?.imageUrl) {
+      window.open(result.value.imageUrl, '_blank');
+    }
+  } finally {
+    if (btn) {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   }
 }
 </script>

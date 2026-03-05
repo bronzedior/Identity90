@@ -10,7 +10,7 @@
       </div>
 
       <p class="text-lg text-slate-300 max-w-sm mb-12">
-        Ubah fotomu menjadi Avatar Bangsawan atau Ksatria Legendaris dengan kekuatan AI.
+        Ubah fotomu menjadi Avatar Nusantara dengan kekuatan AI.
       </p>
 
       <div class="w-full space-y-4">

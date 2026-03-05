@@ -133,18 +133,27 @@ const shareImage = async (event) => {
       files: [file]
     };
 
+    // Web Share API requires a secure context (HTTPS) to work on most mobile browsers.
+    if (!navigator.share) {
+      if (!window.isSecureContext) {
+        alert("Fitur Share Image tidak didukung di browser Anda karena koneksi tidak aman (HTTP). Silakan gunakan HTTPS atau gunakan tombol Save Image.");
+      } else {
+         alert("Browser Anda tidak mendukung fitur Share Image secara langsung. Silakan gunakan Save Image.");
+         fallbackShare(shareText);
+      }
+      return;
+    }
+
     if (navigator.canShare && navigator.canShare(shareData)) {
       await navigator.share(shareData);
       return;
-    } else if (navigator.share) {
+    } else {
       await navigator.share({
         title: 'Identity90 - Nusantara Series',
         text: shareText,
         url: window.location.href,
       })
       return;
-    } else {
-      fallbackShare(shareText);
     }
   } catch (err) {
     if (err.name !== 'AbortError') {

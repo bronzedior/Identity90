@@ -45,7 +45,7 @@
               <SparklesIcon class="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h3 class="font-bold text-lg text-slate-100">Elevated Heritage</h3>
+              <h3 class="font-bold text-lg text-slate-100">Gunakan Fitur Wajah Nusantara</h3>
               <p class="text-sm text-slate-400 mt-1">Jelajahi gaya busana tradisional tingkat tinggi.</p>
             </div>
           </button>
